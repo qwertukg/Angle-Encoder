@@ -1,0 +1,249 @@
+<!doctype html>
+<html lang="ru">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Angle Encoder</title>
+    <style>
+        :root {
+            --background: #000;
+            --bright: #00ff41;
+            --mid: #008f11;
+            --dark: #003b00;
+            --dim: #0f4d1c;
+            --glow: 0 0 6px rgba(0, 255, 65, 0.7);
+        }
+
+        body {
+            font-family: Consolas, ui-monospace, monospace;
+            margin: 24px;
+            color: var(--bright);
+            background: var(--background);
+        }
+
+        .layout {
+            display: grid;
+            grid-template-columns: repeat(12, minmax(0, 1fr));
+            gap: 24px;
+        }
+
+        .sidebar {
+            grid-column: span 2;
+        }
+
+        .main {
+            grid-column: span 10;
+            display: grid;
+            grid-template-rows: auto auto;
+            gap: 16px;
+            align-content: start;
+        }
+
+        .layers-panel {
+            margin-top: 24px;
+            font-size: 12px;
+        }
+
+        @media (max-width: 800px) {
+            .sidebar,
+            .main {
+                grid-column: 1 / -1;
+            }
+        }
+
+        .layers-header,
+        #layers li {
+            display: flex;
+            justify-content: space-between;
+            gap: 8px;
+            padding: 2px 6px;
+        }
+
+        .layers-header {
+            color: var(--mid);
+            border-bottom: 1px solid var(--dark);
+            margin-bottom: 4px;
+        }
+
+        #layers {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        #layers li {
+            cursor: default;
+            border-radius: 2px;
+        }
+
+        #layers li:hover {
+            color: var(--background);
+            background: var(--bright);
+            box-shadow: var(--glow);
+        }
+
+        form {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        label {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            font-size: 13px;
+            color: var(--mid);
+        }
+
+        input,
+        button {
+            font: inherit;
+            color: var(--bright);
+            background: var(--background);
+            border: 1px solid var(--mid);
+            border-radius: 2px;
+            padding: 4px 6px;
+        }
+
+        input {
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: var(--bright);
+            box-shadow: var(--glow);
+        }
+
+        button {
+            align-self: flex-start;
+            cursor: pointer;
+        }
+
+        button:hover {
+            color: var(--background);
+            background: var(--bright);
+            box-shadow: var(--glow);
+        }
+
+        #recommendations {
+            margin: 16px 0 0;
+            font-size: 14px;
+            line-height: 1.5;
+            text-shadow: var(--glow);
+        }
+
+        #dial {
+            display: block;
+            width: min(100%, 820px, 80vh);
+            aspect-ratio: 1;
+            margin: 0 auto;
+            touch-action: none;
+        }
+
+        #history {
+            justify-self: center;
+            max-width: 100%;
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            font-size: 12px;
+        }
+
+        #history li {
+            display: flex;
+            gap: 12px;
+            padding: 4px 0;
+            color: var(--mid);
+            opacity: 0.6;
+        }
+
+        #history li:first-child {
+            color: var(--bright);
+            font-weight: 600;
+            opacity: 1;
+        }
+
+        #history .angle {
+            flex: none;
+            width: 56px;
+            text-align: right;
+        }
+
+        #history .density {
+            flex: none;
+            width: 48px;
+            text-align: right;
+        }
+
+        #history .code {
+            word-break: break-all;
+            color: var(--dim);
+        }
+
+        #history .code .one {
+            color: var(--bright);
+            font-weight: 700;
+            text-shadow: var(--glow);
+        }
+
+        #history .code .diff {
+            color: var(--background);
+            background: var(--bright);
+            border-radius: 2px;
+            text-shadow: none;
+            box-shadow: var(--glow);
+        }
+    </style>
+</head>
+<body>
+<div class="layout">
+<aside class="sidebar">
+    <form id="params">
+        <label>
+            Длина кода
+            <input name="codeLength" type="number" value="128" min="1">
+        </label>
+        <label>
+            Слоёв
+            <input name="layersCount" type="number" value="22" min="2">
+        </label>
+        <label>
+            Перекрытие
+            <input name="overlap" type="number" value="0.4" min="0" max="0.99" step="0.01">
+        </label>
+        <label>
+            Детекторов в широком слое
+            <input name="widestDetectors" type="number" value="2" min="1">
+        </label>
+        <label>
+            Детекторов в узком слое
+            <input name="narrowestDetectors" type="number" value="180" min="1">
+        </label>
+        <button type="submit">Пересоздать энкодер</button>
+    </form>
+
+    <p id="recommendations">
+        Рекомендуемая плотность кодов: 25%<br>
+        Рекомендуемое перекрытие детекторов: 40%
+    </p>
+
+    <div class="layers-panel">
+        <div class="layers-header"><span>Слой</span><span>Дет.</span></div>
+        <ol id="layers"></ol>
+    </div>
+</aside>
+
+<main class="main">
+    <canvas id="dial"></canvas>
+
+    <ol id="history"></ol>
+</main>
+</div>
+
+    <script src="encoder.js"></script>
+    <script src="main.js"></script>
+</body>
+</html>
