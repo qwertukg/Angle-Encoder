@@ -162,6 +162,17 @@
             box-shadow: var(--glow);
         }
 
+        #seed-line {
+            margin: 12px 0 0;
+            font-size: 14px;
+            color: var(--mid);
+        }
+
+        #seed {
+            color: var(--bright);
+            user-select: all;
+        }
+
         #recommendations {
             margin: 12px 0 0;
             font-size: 14px;
@@ -287,6 +298,8 @@
         </label>
         <button type="submit">Пересоздать энкодер</button>
     </form>
+
+    <p id="seed-line">Сид: <output id="seed"></output></p>
 
     <p id="recommendations">
         Рекомендуемая плотность кодов: 25%<br>

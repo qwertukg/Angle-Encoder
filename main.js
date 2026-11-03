@@ -2,6 +2,7 @@ const form = document.getElementById("params");
 const canvas = document.getElementById("dial");
 const history = document.getElementById("history");
 const layersList = document.getElementById("layers");
+const seedOutput = document.getElementById("seed");
 const ctx = canvas.getContext("2d");
 
 // The dial and inactive detectors only change with the encoder, the canvas
@@ -49,8 +50,10 @@ function createEncoder() {
         readNumber("layersCount"),
         readNumber("overlap"),
         readNumber("widestDetectors"),
-        readNumber("narrowestDetectors")
+        readNumber("narrowestDetectors"),
+        crypto.getRandomValues(new Uint32Array(1))[0]
     );
+    seedOutput.textContent = encoder.seed;
     layoutSlots();
     codes = [];
     history.innerHTML = "";

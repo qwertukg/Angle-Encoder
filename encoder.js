@@ -1,12 +1,28 @@
 const GOLDEN_RATIO_FRACTION = (Math.sqrt(5) - 1) / 2;
 
+// Mulberry32: a small seedable generator of numbers in [0, 1), so that an
+// encoder can be reproduced from its seed.
+function mulberry32(seed) {
+    let state = seed >>> 0;
+
+    return () => {
+        state = (state + 0x6d2b79f5) >>> 0;
+        let t = state;
+        t = Math.imul(t ^ (t >>> 15), t | 1);
+        t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+        return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+}
+
 class Encoder {
-    constructor(codeLength, layersCount, overlap, widestDetectors, narrowestDetectors) {
+    constructor(codeLength, layersCount, overlap, widestDetectors, narrowestDetectors, seed) {
         this.codeLength = codeLength;
         this.layersCount = layersCount;
         this.overlap = overlap;
         this.widestDetectors = widestDetectors;
         this.narrowestDetectors = narrowestDetectors;
+        this.seed = seed;
+        this.random = mulberry32(seed);
         this.layers = this.createLayers();
     }
 
@@ -71,7 +87,7 @@ class Encoder {
                 detectors.push({
                     center: (i + phase) * step,
                     width,
-                    bit: Math.floor(Math.random() * this.codeLength),
+                    bit: Math.floor(this.random() * this.codeLength),
                 });
             }
             layers.push(detectors);
