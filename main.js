@@ -44,15 +44,29 @@ function toRadians(degrees) {
     return (degrees * Math.PI) / 180;
 }
 
+// Impossible parameters are reported on the form, and the current encoder
+// stays as it is.
 function createEncoder() {
-    encoder = new Encoder(
-        readNumber("codeLength"),
-        readNumber("layersCount"),
-        readNumber("overlap"),
-        readNumber("widestDetectors"),
-        readNumber("narrowestDetectors"),
-        crypto.getRandomValues(new Uint32Array(1))[0]
-    );
+    const layersInput = form.elements.layersCount;
+
+    try {
+        encoder = new Encoder(
+            readNumber("codeLength"),
+            readNumber("layersCount"),
+            readNumber("overlap"),
+            readNumber("widestDetectors"),
+            readNumber("narrowestDetectors"),
+            crypto.getRandomValues(new Uint32Array(1))[0]
+        );
+    } catch (error) {
+        if (!(error instanceof RangeError)) {
+            throw error;
+        }
+        layersInput.setCustomValidity(error.message);
+        layersInput.reportValidity();
+        return;
+    }
+
     seedOutput.textContent = encoder.seed;
     layoutSlots();
     codes = [];
@@ -406,6 +420,11 @@ layersList.addEventListener("pointerleave", () => {
     hoveredLayer = null;
     staticValid = false;
     requestFrame();
+});
+
+// A custom validity error blocks submitting, so it is cleared on any edit.
+form.addEventListener("input", () => {
+    form.elements.layersCount.setCustomValidity("");
 });
 
 form.addEventListener("submit", (event) => {

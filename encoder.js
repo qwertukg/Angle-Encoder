@@ -60,21 +60,45 @@ class Encoder {
         return distance <= detector.width / 2.0;
     }
 
-    createLayers() {
-        const ratio =
-            (this.narrowestDetectors / this.widestDetectors) ** (1.0 / (this.layersCount - 1));
+    // Detector counts grow geometrically from the widest layer to the
+    // narrowest. Rounding can give neighbouring layers the same count, so each
+    // layer is pushed to at least one more than the previous one, and then
+    // capped so that the narrowest layer keeps its exact count.
+    layerCounts() {
+        const last = this.layersCount - 1;
 
-        const layers = [];
-        for (let layer = 0; layer < this.layersCount; layer++) {
-            let count;
+        if (this.narrowestDetectors - this.widestDetectors < last) {
+            throw new RangeError(
+                `Для ${this.layersCount} слоёв с разным числом детекторов нужно, ` +
+                    `чтобы в узком слое было хотя бы на ${last} больше, чем в широком`
+            );
+        }
+
+        const ratio = (this.narrowestDetectors / this.widestDetectors) ** (1.0 / last);
+        const counts = [];
+
+        for (let layer = 0; layer <= last; layer++) {
             if (layer === 0) {
-                count = this.widestDetectors;
-            } else if (layer === this.layersCount - 1) {
-                count = this.narrowestDetectors;
+                counts.push(this.widestDetectors);
+            } else if (layer === last) {
+                counts.push(this.narrowestDetectors);
             } else {
-                count = Math.round(this.widestDetectors * ratio ** layer);
+                const count = Math.round(this.widestDetectors * ratio ** layer);
+                counts.push(Math.max(count, counts[layer - 1] + 1));
             }
+        }
 
+        for (let layer = last - 1; layer > 0; layer--) {
+            counts[layer] = Math.min(counts[layer], counts[layer + 1] - 1);
+        }
+
+        return counts;
+    }
+
+    createLayers() {
+        const layers = [];
+
+        this.layerCounts().forEach((count, layer) => {
             const step = 360.0 / count;
             const width = step / (1.0 - this.overlap);
             // Each layer is rotated by its own fraction of a step so that the
@@ -91,7 +115,7 @@ class Encoder {
                 });
             }
             layers.push(detectors);
-        }
+        });
 
         return layers;
     }
