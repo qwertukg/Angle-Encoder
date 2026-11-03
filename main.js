@@ -147,13 +147,13 @@ function updateAngle({ x, y }) {
 
 // Only the new row is rendered; the rest stay in the DOM as they are.
 function updateHistory() {
-    const { codeString } = encoder.encode(angle);
+    const { codeString, hits } = encoder.encode(angle);
 
     if (codes.length > 0 && codes[0].codeString === codeString) {
         return;
     }
 
-    codes.unshift({ angle, codeString });
+    codes.unshift({ angle, codeString, hits });
     history.insertAdjacentHTML("afterbegin", renderCode(0));
 
     if (codes.length > HISTORY_SIZE) {
@@ -164,9 +164,10 @@ function updateHistory() {
     }
 }
 
-// Bits that differ from the previous (older) code are highlighted.
+// Bits that differ from the previous (older) code are highlighted, and so are
+// bits set by more than one detector.
 function renderCode(i) {
-    const { angle, codeString } = codes[i];
+    const { angle, codeString, hits } = codes[i];
     const previous = codes[i + 1]?.codeString;
     let ones = 0;
     let html = "";
@@ -175,17 +176,20 @@ function renderCode(i) {
         const bit = codeString[j];
         const one = bit === "1";
         const diff = previous !== undefined && previous[j] !== bit;
+        let classes = "";
 
         if (one) {
             ones++;
+            classes += " one";
+        }
+        if (hits[j] > 1) {
+            classes += " shared";
+        }
+        if (diff) {
+            classes += " diff";
         }
 
-        if (one || diff) {
-            const classes = one && diff ? "one diff" : one ? "one" : "diff";
-            html += `<span class="${classes}">${bit}</span>`;
-        } else {
-            html += bit;
-        }
+        html += classes ? `<span class="${classes.slice(1)}">${bit}</span>` : bit;
     }
 
     const density = (ones / codeString.length) * 100;

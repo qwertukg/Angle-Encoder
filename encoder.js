@@ -19,18 +19,22 @@ class Encoder {
     encode(angleDegrees) {
         const angle = ((angleDegrees % 360.0) + 360.0) % 360.0;
         const bits = new Uint8Array(this.codeLength);
+        // How many active detectors set each bit: more than one means they
+        // share it.
+        const hits = new Uint8Array(this.codeLength);
 
         for (const layer of this.layers) {
             for (const detector of layer) {
                 if (this.isActive(detector, angle)) {
                     bits[detector.bit] = 1;
+                    hits[detector.bit]++;
                 }
             }
         }
 
         const codeString = bits.join("");
 
-        return { bitCode: bits, codeString };
+        return { bitCode: bits, codeString, hits };
     }
 
     isActive(detector, angle) {

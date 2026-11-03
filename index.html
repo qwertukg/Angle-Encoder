@@ -12,6 +12,8 @@
             --dark: #003b00;
             --dim: #0f4d1c;
             --glow: 0 0 6px rgba(0, 255, 65, 0.7);
+            --red: #ff3b3b;
+            --red-glow: 0 0 6px rgba(255, 59, 59, 0.7);
         }
 
         /* The page fills exactly one screen: the dial shrinks to whatever
@@ -240,12 +242,21 @@
             text-shadow: var(--glow);
         }
 
+        #history .code .shared {
+            color: var(--red);
+            text-shadow: var(--red-glow);
+        }
+
         #history .code .diff {
             color: var(--background);
             background: var(--bright);
             border-radius: 2px;
             text-shadow: none;
             box-shadow: var(--glow);
+        }
+
+        #history .code .diff.shared {
+            color: #b00000;
         }
     </style>
 </head>
