@@ -10,21 +10,7 @@ const ctx = canvas.getContext("2d");
 const staticCanvas = document.createElement("canvas");
 const staticCtx = staticCanvas.getContext("2d");
 
-const HISTORY_SIZE = 5;
 const LABEL_MARGIN = 56;
-const LAYER_GAP = 0.6;
-
-const FONT = "Consolas, ui-monospace, monospace";
-
-const COLORS = {
-    dial: "#00ff41",
-    tick: "#008f11",
-    detector: "#0b2e12",
-    hoveredDetector: "#2a9d48",
-    activeDetector: "#00ff41",
-    ray: "#d4ffd4",
-    glow: "rgba(0, 255, 65, 0.8)",
-};
 
 let encoder;
 let slots;
@@ -36,96 +22,44 @@ let hoveredLayer = null;
 let staticValid = false;
 let frameRequested = false;
 
-function readNumber(name) {
-    return Number(form.elements[name].value);
-}
-
 function toRadians(degrees) {
     return (degrees * Math.PI) / 180;
 }
 
-// Impossible parameters are reported on the form, and the current encoder
-// stays as it is.
-function createEncoder() {
-    const layersInput = form.elements.layersCount;
+function circularDistance(a, b) {
+    const diff = Math.abs(a - b);
 
-    try {
-        encoder = new Encoder(
-            readNumber("codeLength"),
-            readNumber("layersCount"),
-            readNumber("overlap"),
-            readNumber("widestDetectors"),
-            readNumber("narrowestDetectors"),
-            crypto.getRandomValues(new Uint32Array(1))[0]
-        );
-    } catch (error) {
-        if (!(error instanceof RangeError)) {
-            throw error;
-        }
-        layersInput.setCustomValidity(error.message);
-        layersInput.reportValidity();
+    return Math.min(diff, 360.0 - diff);
+}
+
+function createEncoder() {
+    const created = createFromForm(
+        form,
+        (p) =>
+            new Encoder(
+                p.codeLength,
+                p.layersCount,
+                p.overlap,
+                p.widestDetectors,
+                p.narrowestDetectors,
+                randomSeed()
+            )
+    );
+
+    if (!created) {
         return;
     }
 
+    encoder = created;
     seedOutput.textContent = encoder.seed;
-    layoutSlots();
+    ({ slots, slotCount } = layoutSlots(encoder.layers, circularDistance));
     codes = [];
     history.innerHTML = "";
     hoveredLayer = null;
     staticValid = false;
 
-    renderLayers();
+    renderLayersList(layersList, encoder.counts);
     requestFrame();
-}
-
-function renderLayers() {
-    layersList.innerHTML = encoder.layers
-        .map(
-            (layer, l) =>
-                `<li data-layer="${l}"><span>${l + 1}</span><span>${layer.length}</span></li>`
-        )
-        .join("");
-}
-
-// Each detector gets a radial slot, measured in track widths from the inner
-// edge of the rings: overlapping detectors of one layer are spread over
-// separate concentric tracks so that every arc stays visible.
-function layoutSlots() {
-    let offset = 0;
-
-    slots = encoder.layers.map((layer) => {
-        const trackOf = assignTracks(layer);
-        const layerSlots = trackOf.map((track) => offset + track + 0.5);
-
-        offset += Math.max(...trackOf) + 1 + LAYER_GAP;
-        return layerSlots;
-    });
-    slotCount = offset - LAYER_GAP;
-}
-
-function assignTracks(layer) {
-    const trackOf = [];
-
-    layer.forEach((detector, i) => {
-        const taken = new Set();
-
-        for (let j = 0; j < i; j++) {
-            const diff = Math.abs(detector.center - layer[j].center);
-            const distance = Math.min(diff, 360.0 - diff);
-
-            if (distance < (detector.width + layer[j].width) / 2.0 - 1e-9) {
-                taken.add(trackOf[j]);
-            }
-        }
-
-        let track = 0;
-        while (taken.has(track)) {
-            track++;
-        }
-        trackOf.push(track);
-    });
-
-    return trackOf;
 }
 
 function requestFrame() {
@@ -162,60 +96,20 @@ function updateAngle({ x, y }) {
     angle = ((degrees % 360.0) + 360.0) % 360.0;
 }
 
-// Only the new row is rendered; the rest stay in the DOM as they are.
 function updateHistory() {
-    const { codeString, hits } = encoder.encode(angle);
+    const code = encoder.encode(angle);
 
-    if (codes.length > 0 && codes[0].codeString === codeString) {
+    if (codes.length > 0 && codes[0].code.codeString === code.codeString) {
         return;
     }
 
-    codes.unshift({ angle, codeString, hits });
-    history.insertAdjacentHTML("afterbegin", renderCode(0));
-
-    if (codes.length > HISTORY_SIZE) {
-        codes.pop();
-        history.lastElementChild.remove();
-        // The oldest row has nothing to compare with any more.
-        history.lastElementChild.outerHTML = renderCode(codes.length - 1);
-    }
+    pushHistory(history, codes, { angle, code }, renderEntry);
 }
 
-// Bits that differ from the previous (older) code are highlighted, and so are
-// bits set by more than one detector.
-function renderCode(i) {
-    const { angle, codeString, hits } = codes[i];
-    const previous = codes[i + 1]?.codeString;
-    let ones = 0;
-    let html = "";
+function renderEntry(i) {
+    const { angle, code } = codes[i];
 
-    for (let j = 0; j < codeString.length; j++) {
-        const bit = codeString[j];
-        const one = bit === "1";
-        const diff = previous !== undefined && previous[j] !== bit;
-        let classes = "";
-
-        if (one) {
-            ones++;
-            classes += " one";
-        }
-        if (hits[j] > 1) {
-            classes += " shared";
-        }
-        if (diff) {
-            classes += " diff";
-        }
-
-        html += classes ? `<span class="${classes.slice(1)}">${bit}</span>` : bit;
-    }
-
-    const density = (ones / codeString.length) * 100;
-
-    return (
-        `<li><span class="angle">${angle.toFixed(1)}°</span>` +
-        `<span class="density">${density.toFixed(1)}%</span>` +
-        `<span class="code">${html}</span></li>`
-    );
+    return `<li>${renderCodeLine(`${angle.toFixed(1)}°`, code, codes[i + 1]?.code.codeString)}</li>`;
 }
 
 function geometry() {
@@ -239,13 +133,8 @@ function geometry() {
 function draw() {
     const dpr = window.devicePixelRatio || 1;
     const g = geometry();
-    const pixels = Math.round(g.size * dpr);
 
-    if (canvas.width !== pixels) {
-        canvas.width = pixels;
-        canvas.height = pixels;
-        staticCanvas.width = pixels;
-        staticCanvas.height = pixels;
+    if (fitCanvas(canvas, staticCanvas, g.size)) {
         staticValid = false;
     }
 
@@ -258,7 +147,7 @@ function draw() {
     }
 
     ctx.setTransform(1, 0, 0, 1, 0, 0);
-    ctx.clearRect(0, 0, pixels, pixels);
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
     ctx.drawImage(staticCanvas, 0, 0);
 
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
@@ -405,31 +294,12 @@ window.addEventListener("pointermove", (event) => {
 // The dial is sized by its container, which also changes with the history.
 new ResizeObserver(requestFrame).observe(canvas);
 
-layersList.addEventListener("pointerover", (event) => {
-    const item = event.target.closest("li");
-    const layer = item ? Number(item.dataset.layer) : null;
-
-    if (item && layer !== hoveredLayer) {
-        hoveredLayer = layer;
-        staticValid = false;
-        requestFrame();
-    }
-});
-
-layersList.addEventListener("pointerleave", () => {
-    hoveredLayer = null;
+bindLayerHover(layersList, (layer) => {
+    hoveredLayer = layer;
     staticValid = false;
     requestFrame();
 });
 
-// A custom validity error blocks submitting, so it is cleared on any edit.
-form.addEventListener("input", () => {
-    form.elements.layersCount.setCustomValidity("");
-});
-
-form.addEventListener("submit", (event) => {
-    event.preventDefault();
-    createEncoder();
-});
+bindForm(form, createEncoder);
 
 createEncoder();

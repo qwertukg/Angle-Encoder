@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="ru">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Plane Encoder</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="layout">
+<aside class="sidebar">
+    <form id="params">
+        <label>
+            Длина кода
+            <input name="codeLength" type="number" value="128" min="1">
+        </label>
+        <label>
+            Слоёв
+            <input name="layersCount" type="number" value="22" min="2">
+        </label>
+        <label>
+            Перекрытие
+            <input name="overlap" type="number" value="0.4" min="0" max="0.99" step="0.01">
+        </label>
+        <label>
+            Детекторов в широком слое
+            <input name="widestDetectors" type="number" value="2" min="1">
+        </label>
+        <label>
+            Детекторов в узком слое
+            <input name="narrowestDetectors" type="number" value="180" min="1">
+        </label>
+        <button type="submit">Пересоздать энкодер</button>
+    </form>
+
+    <p id="seed-line">Сид: <output id="seed"></output></p>
+
+    <p id="recommendations">
+        Рекомендуемая плотность кодов: 25%<br>
+        Рекомендуемое перекрытие детекторов: 40%
+    </p>
+
+    <div class="layers-panel">
+        <div class="layers-header"><span>Слой</span><span>Дет. на сторону</span></div>
+        <ol id="layers"></ol>
+    </div>
+</aside>
+
+<main class="main">
+    <nav class="tabs">
+        <a href="index.html">Угол</a>
+        <a href="plane.html" aria-current="page">Плоскость</a>
+    </nav>
+
+    <div class="canvas-box">
+        <canvas id="plane"></canvas>
+    </div>
+
+    <ol id="history" class="pairs"></ol>
+</main>
+</div>
+
+<footer>
+    <div class="legend">
+        <span class="legend-item" tabindex="0" data-tip="Бит изменился по сравнению с предыдущим кодом: зажёгся или погас">
+            <span class="code"><span class="one diff">1</span></span> новый бит
+        </span>
+        <span class="legend-item" tabindex="0" data-tip="Два разных детектора зажгли общий бит в одном коде">
+            <span class="code"><span class="one shared">1</span></span> паразитный бит
+        </span>
+    </div>
+    <a href="https://arxiv.org/pdf/2508.00869" target="_blank" rel="noopener">Статья на arXiv: 2508.00869</a>
+</footer>
+
+    <script src="encoder.js"></script>
+    <script src="ui.js"></script>
+    <script src="plane.js"></script>
+</body>
+</html>

@@ -1,0 +1,345 @@
+:root {
+    --background: #000;
+    --bright: #00ff41;
+    --mid: #008f11;
+    --dark: #003b00;
+    --dim: #0f4d1c;
+    --glow: 0 0 6px rgba(0, 255, 65, 0.7);
+    --red: #ff3b3b;
+    --red-glow: 0 0 6px rgba(255, 59, 59, 0.7);
+}
+
+/* The page fills exactly one screen: the canvas shrinks to whatever height
+   is left after the tabs, the code history and the footer. */
+body {
+    font-family: Consolas, ui-monospace, monospace;
+    margin: 0;
+    padding: 16px 24px;
+    box-sizing: border-box;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    color: var(--bright);
+    background: var(--background);
+}
+
+.layout {
+    flex: 1;
+    min-height: 0;
+    display: grid;
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+    grid-template-rows: minmax(0, 1fr);
+    gap: 24px;
+}
+
+.sidebar {
+    grid-column: span 2;
+    min-height: 0;
+    overflow-y: auto;
+}
+
+.main {
+    grid-column: span 10;
+    min-height: 0;
+    display: grid;
+    grid-template-rows: auto minmax(0, 1fr) auto;
+    gap: 12px;
+}
+
+.canvas-box {
+    min-height: 0;
+    container-type: size;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.canvas-box canvas {
+    display: block;
+    width: min(100cqw, 100cqh);
+    height: min(100cqw, 100cqh);
+    touch-action: none;
+}
+
+@media (max-width: 800px) {
+    body {
+        height: auto;
+    }
+
+    .layout {
+        grid-template-rows: none;
+    }
+
+    .sidebar,
+    .main {
+        grid-column: 1 / -1;
+    }
+
+    .canvas-box {
+        height: min(100vw - 48px, 80vh);
+    }
+}
+
+.tabs {
+    display: flex;
+    gap: 4px;
+    border-bottom: 1px solid var(--dark);
+    font-size: 14px;
+}
+
+.tabs a {
+    padding: 4px 16px;
+    color: var(--mid);
+    text-decoration: none;
+    border: 1px solid var(--dark);
+    border-bottom: none;
+    border-radius: 2px 2px 0 0;
+}
+
+.tabs a:hover {
+    color: var(--bright);
+    text-shadow: var(--glow);
+}
+
+.tabs a[aria-current="page"] {
+    color: var(--background);
+    background: var(--bright);
+    box-shadow: var(--glow);
+    text-shadow: none;
+}
+
+.layers-panel {
+    margin-top: 16px;
+    font-size: 12px;
+}
+
+.layers-header,
+#layers li {
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 1px 6px;
+}
+
+.layers-header {
+    color: var(--mid);
+    border-bottom: 1px solid var(--dark);
+    margin-bottom: 4px;
+}
+
+#layers {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+#layers li {
+    cursor: default;
+    border-radius: 2px;
+}
+
+#layers li:hover {
+    color: var(--background);
+    background: var(--bright);
+    box-shadow: var(--glow);
+}
+
+form {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+label {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    font-size: 13px;
+    color: var(--mid);
+}
+
+input,
+button {
+    font: inherit;
+    color: var(--bright);
+    background: var(--background);
+    border: 1px solid var(--mid);
+    border-radius: 2px;
+    padding: 4px 6px;
+}
+
+input {
+    width: 100%;
+    box-sizing: border-box;
+}
+
+input:focus {
+    outline: none;
+    border-color: var(--bright);
+    box-shadow: var(--glow);
+}
+
+button {
+    align-self: flex-start;
+    cursor: pointer;
+}
+
+button:hover {
+    color: var(--background);
+    background: var(--bright);
+    box-shadow: var(--glow);
+}
+
+#seed-line {
+    margin: 12px 0 0;
+    font-size: 14px;
+    color: var(--mid);
+}
+
+#seed {
+    color: var(--bright);
+    user-select: all;
+}
+
+#recommendations {
+    margin: 12px 0 0;
+    font-size: 14px;
+    line-height: 1.5;
+    text-shadow: var(--glow);
+}
+
+footer {
+    flex: none;
+    margin-top: 12px;
+    padding-top: 8px;
+    border-top: 1px solid var(--dark);
+    font-size: 13px;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px 24px;
+}
+
+.legend {
+    display: flex;
+    gap: 24px;
+    color: var(--mid);
+}
+
+.legend-item {
+    position: relative;
+    cursor: help;
+    border-bottom: 1px dotted var(--mid);
+}
+
+.legend-item::after {
+    content: attr(data-tip);
+    position: absolute;
+    left: 0;
+    bottom: calc(100% + 8px);
+    white-space: nowrap;
+    padding: 4px 8px;
+    font-size: 12px;
+    color: var(--bright);
+    background: var(--background);
+    border: 1px solid var(--mid);
+    border-radius: 2px;
+    box-shadow: var(--glow);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.15s;
+}
+
+.legend-item:focus-visible {
+    outline: 1px solid var(--bright);
+    outline-offset: 2px;
+}
+
+.legend-item:hover::after,
+.legend-item:focus::after {
+    opacity: 1;
+}
+
+a {
+    color: var(--bright);
+}
+
+a:hover {
+    text-shadow: var(--glow);
+}
+
+#history {
+    justify-self: center;
+    max-width: 100%;
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    font-size: 12px;
+    /* Room for all five entries, so the canvas does not jump as they fill. */
+    min-height: calc(5 * 24px);
+}
+
+/* On the plane every entry is a pair of codes, one line per axis. */
+#history.pairs {
+    min-height: calc(5 * 40px);
+}
+
+#history li {
+    padding: 4px 0;
+    line-height: 16px;
+    color: var(--mid);
+    opacity: 0.6;
+}
+
+#history li:first-child {
+    color: var(--bright);
+    font-weight: 600;
+    opacity: 1;
+}
+
+#history .line {
+    display: flex;
+    gap: 12px;
+}
+
+#history .value {
+    flex: none;
+    width: 64px;
+    text-align: right;
+}
+
+#history .density {
+    flex: none;
+    width: 48px;
+    text-align: right;
+}
+
+#history .code {
+    word-break: break-all;
+    color: var(--dim);
+}
+
+.code .one {
+    color: var(--bright);
+    font-weight: 700;
+    text-shadow: var(--glow);
+}
+
+.code .shared {
+    color: var(--red);
+    text-shadow: var(--red-glow);
+}
+
+.code .diff {
+    color: var(--background);
+    background: var(--bright);
+    border-radius: 2px;
+    text-shadow: none;
+    box-shadow: var(--glow);
+}
+
+.code .diff.shared {
+    background: var(--red);
+    box-shadow: var(--red-glow);
+}
