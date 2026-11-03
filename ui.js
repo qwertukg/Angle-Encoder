@@ -16,8 +16,101 @@ const COLORS = {
     glow: "rgba(0, 255, 65, 0.8)",
 };
 
+const PARAM_NAMES = [
+    "codeLength",
+    "layersCount",
+    "overlap",
+    "widestDetectors",
+    "narrowestDetectors",
+];
+
 function randomSeed() {
     return crypto.getRandomValues(new Uint32Array(1))[0];
+}
+
+// The configuration of both tabs lives in the query string, so a link shares
+// it. Each tab has its own keys, prefixed with the tab name (e.g.
+// angle.layersCount, position.x), and changes only those, so switching tabs
+// keeps the configuration of each.
+
+// Fills the form from the link; values the form would not accept are left at
+// their defaults. Returns the seed from the link, or null when there is none.
+function loadConfig(form, prefix) {
+    const query = new URLSearchParams(location.search);
+
+    for (const name of PARAM_NAMES) {
+        const input = form.elements[name];
+        const value = query.get(`${prefix}.${name}`);
+
+        if (value !== null) {
+            input.value = value;
+            if (value.trim() === "" || !input.checkValidity()) {
+                input.value = input.defaultValue;
+            }
+        }
+    }
+
+    const key = `${prefix}.seed`;
+    const seed = Number(query.get(key));
+    const validSeed = query.has(key) && Number.isInteger(seed) && seed >= 0 && seed <= 0xffffffff;
+
+    return validSeed ? seed : null;
+}
+
+// The input of a tab (the angle, or x and y) from the link; names that are
+// missing or not numbers are left out.
+function readInput(prefix, names) {
+    const query = new URLSearchParams(location.search);
+    const input = {};
+
+    for (const name of names) {
+        const value = query.get(`${prefix}.${name}`);
+
+        if (value !== null && value.trim() !== "" && Number.isFinite(Number(value))) {
+            input[name] = Number(value);
+        }
+    }
+
+    return input;
+}
+
+let saveTimer = 0;
+
+// Saves the parameters, the seed and the input of the tab to the link. The
+// pages keep their code history in a global named `history`, hence
+// window.history here.
+function saveConfig(form, prefix, seed, input) {
+    clearTimeout(saveTimer);
+
+    const query = new URLSearchParams(location.search);
+
+    for (const name of PARAM_NAMES) {
+        query.set(`${prefix}.${name}`, form.elements[name].value);
+    }
+    query.set(`${prefix}.seed`, seed);
+    for (const [name, value] of Object.entries(input)) {
+        query.set(`${prefix}.${name}`, Number(value.toFixed(2)));
+    }
+
+    const search = `?${query}`;
+    try {
+        window.history.replaceState(null, "", search);
+    } catch {
+        // Some browsers refuse to change the link of a page opened as a local
+        // file; the page works without it.
+    }
+
+    // The tabs carry the whole link, with the configuration of both.
+    document.querySelectorAll(".tabs a").forEach((tab) => {
+        tab.search = search;
+    });
+}
+
+// Browsers limit how often the link may change, so pointer moves are saved
+// only once the pointer rests.
+function saveConfigLater(form, prefix, seed, input) {
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(() => saveConfig(form, prefix, seed, input), 500);
 }
 
 function readParams(form) {
@@ -32,20 +125,35 @@ function readParams(form) {
     };
 }
 
-// Impossible parameters are reported on the form and null is returned, so
-// the caller keeps its current encoder.
-function createFromForm(form, create) {
+// For impossible parameters null is returned, so the caller keeps its
+// current encoder; with `report` the reason is also shown on the form.
+function createFromForm(form, create, report = true) {
     const layersInput = form.elements.layersCount;
 
     try {
-        return create(readParams(form));
+        const created = create(readParams(form));
+        layersInput.setCustomValidity("");
+        return created;
     } catch (error) {
         if (!(error instanceof RangeError)) {
             throw error;
         }
-        layersInput.setCustomValidity(error.message);
-        layersInput.reportValidity();
+        if (report) {
+            layersInput.setCustomValidity(error.message);
+            layersInput.reportValidity();
+        }
         return null;
+    }
+}
+
+// Creates the first encoder from the link. A link whose parameters cannot
+// work together falls back to the defaults, without a seed.
+function startFromConfig(form, prefix, createEncoder) {
+    const seed = loadConfig(form, prefix);
+
+    if (!createEncoder(seed ?? randomSeed(), false)) {
+        form.reset();
+        createEncoder();
     }
 }
 
@@ -57,7 +165,7 @@ function bindForm(form, onSubmit) {
 
     form.addEventListener("submit", (event) => {
         event.preventDefault();
-        onSubmit();
+        onSubmit(randomSeed());
     });
 }
 

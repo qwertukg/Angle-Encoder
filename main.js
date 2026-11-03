@@ -12,6 +12,9 @@ const staticCtx = staticCanvas.getContext("2d");
 
 const LABEL_MARGIN = 56;
 
+// Keys of this tab in the link: angle.layersCount, angle.deg and so on.
+const CONFIG_PREFIX = "angle";
+
 let encoder;
 let slots;
 let slotCount;
@@ -32,7 +35,9 @@ function circularDistance(a, b) {
     return Math.min(diff, 360.0 - diff);
 }
 
-function createEncoder() {
+// Returns whether the encoder was created; the configuration is then saved
+// to the link.
+function createEncoder(seed = randomSeed(), report = true) {
     const created = createFromForm(
         form,
         (p) =>
@@ -42,16 +47,18 @@ function createEncoder() {
                 p.overlap,
                 p.widestDetectors,
                 p.narrowestDetectors,
-                randomSeed()
-            )
+                seed
+            ),
+        report
     );
 
     if (!created) {
-        return;
+        return false;
     }
 
     encoder = created;
     seedOutput.textContent = encoder.seed;
+    saveConfig(form, CONFIG_PREFIX, encoder.seed, { deg: angle });
     ({ slots, slotCount } = layoutSlots(encoder.layers, circularDistance));
     codes = [];
     history.innerHTML = "";
@@ -60,6 +67,7 @@ function createEncoder() {
 
     renderLayersList(layersList, encoder.counts);
     requestFrame();
+    return true;
 }
 
 function requestFrame() {
@@ -77,6 +85,7 @@ function frame() {
     if (pointer) {
         updateAngle(pointer);
         pointer = null;
+        saveConfigLater(form, CONFIG_PREFIX, encoder.seed, { deg: angle });
     }
 
     updateHistory();
@@ -302,4 +311,5 @@ bindLayerHover(layersList, (layer) => {
 
 bindForm(form, createEncoder);
 
-createEncoder();
+angle = (((readInput(CONFIG_PREFIX, ["deg"]).deg ?? 0) % 360.0) + 360.0) % 360.0;
+startFromConfig(form, CONFIG_PREFIX, createEncoder);

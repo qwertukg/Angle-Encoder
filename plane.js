@@ -23,6 +23,9 @@ const RULER_GAP = 6;
 const RULER = 34;
 const EDGE_MARGIN = 12;
 
+// Keys of this tab in the link: position.layersCount, position.x and so on.
+const CONFIG_PREFIX = "position";
+
 let encoder;
 let slots;
 let slotCount;
@@ -41,7 +44,9 @@ function clamp(value) {
     return Math.min(Math.max(value, 0), PLANE_SIZE);
 }
 
-function createEncoder() {
+// Returns whether the encoder was created; the configuration is then saved
+// to the link.
+function createEncoder(seed = randomSeed(), report = true) {
     const created = createFromForm(
         form,
         (p) =>
@@ -52,16 +57,18 @@ function createEncoder() {
                 p.widestDetectors,
                 p.narrowestDetectors,
                 PLANE_SIZE,
-                randomSeed()
-            )
+                seed
+            ),
+        report
     );
 
     if (!created) {
-        return;
+        return false;
     }
 
     encoder = created;
     seedOutput.textContent = encoder.seed;
+    saveConfig(form, CONFIG_PREFIX, encoder.seed, position);
     // Both axes have the same detector positions, only their bits differ.
     ({ slots, slotCount } = layoutSlots(encoder.x.layers, linearDistance));
     codes = [];
@@ -71,6 +78,7 @@ function createEncoder() {
 
     renderLayersList(layersList, encoder.counts);
     requestFrame();
+    return true;
 }
 
 function requestFrame() {
@@ -88,6 +96,7 @@ function frame() {
     if (pointer) {
         updatePosition(pointer);
         pointer = null;
+        saveConfigLater(form, CONFIG_PREFIX, encoder.seed, position);
     }
 
     updateHistory();
@@ -346,4 +355,6 @@ bindLayerHover(layersList, (layer) => {
 
 bindForm(form, createEncoder);
 
-createEncoder();
+const linkInput = readInput(CONFIG_PREFIX, ["x", "y"]);
+position = { x: clamp(linkInput.x ?? position.x), y: clamp(linkInput.y ?? position.y) };
+startFromConfig(form, CONFIG_PREFIX, createEncoder);
