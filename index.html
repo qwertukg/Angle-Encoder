@@ -186,7 +186,51 @@
             padding-top: 8px;
             border-top: 1px solid var(--dark);
             font-size: 13px;
-            text-align: right;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            align-items: center;
+            gap: 8px 24px;
+        }
+
+        .legend {
+            display: flex;
+            gap: 24px;
+            color: var(--mid);
+        }
+
+        .legend-item {
+            position: relative;
+            cursor: help;
+            border-bottom: 1px dotted var(--mid);
+        }
+
+        .legend-item::after {
+            content: attr(data-tip);
+            position: absolute;
+            left: 0;
+            bottom: calc(100% + 8px);
+            white-space: nowrap;
+            padding: 4px 8px;
+            font-size: 12px;
+            color: var(--bright);
+            background: var(--background);
+            border: 1px solid var(--mid);
+            border-radius: 2px;
+            box-shadow: var(--glow);
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.15s;
+        }
+
+        .legend-item:focus-visible {
+            outline: 1px solid var(--bright);
+            outline-offset: 2px;
+        }
+
+        .legend-item:hover::after,
+        .legend-item:focus::after {
+            opacity: 1;
         }
 
         a {
@@ -247,18 +291,18 @@
             color: var(--dim);
         }
 
-        #history .code .one {
+        .code .one {
             color: var(--bright);
             font-weight: 700;
             text-shadow: var(--glow);
         }
 
-        #history .code .shared {
+        .code .shared {
             color: var(--red);
             text-shadow: var(--red-glow);
         }
 
-        #history .code .diff {
+        .code .diff {
             color: var(--background);
             background: var(--bright);
             border-radius: 2px;
@@ -266,7 +310,7 @@
             box-shadow: var(--glow);
         }
 
-        #history .code .diff.shared {
+        .code .diff.shared {
             background: var(--red);
             box-shadow: var(--red-glow);
         }
@@ -322,7 +366,15 @@
 </div>
 
 <footer>
-    <a href="https://arxiv.org/pdf/2508.00869" target="_blank" rel="noopener">Статья на arXiv: 2508.00869</a>
+    <div class="legend">
+        <span class="legend-item" tabindex="0" data-tip="Бит изменился по сравнению с предыдущим кодом: зажёгся или погас">
+            <span class="code"><span class="one diff">1</span></span> новый бит
+        </span>
+        <span class="legend-item" tabindex="0" data-tip="Два разных детектора зажгли общий бит в одном коде">
+            <span class="code"><span class="one shared">1</span></span> паразитный бит
+        </span>
+    </div>
+    <ahref="https://arxiv.org/pdf/2508.00869" target="_blank" rel="noopener">Статья на arXiv: 2508.00869</a>
 </footer>
 
     <script src="encoder.js"></script>
