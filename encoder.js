@@ -1,3 +1,5 @@
+const GOLDEN_RATIO_FRACTION = (Math.sqrt(5) - 1) / 2;
+
 class Encoder {
     constructor(codeLength, layersCount, overlap, widestDetectors, narrowestDetectors) {
         this.codeLength = codeLength;
@@ -55,11 +57,15 @@ class Encoder {
 
             const step = 360.0 / count;
             const width = step / (1.0 - this.overlap);
+            // Each layer is rotated by its own fraction of a step so that the
+            // layers do not all line up at 0°, which would make the code
+            // density depend on the angle.
+            const phase = (layer * GOLDEN_RATIO_FRACTION) % 1.0;
 
             const detectors = [];
             for (let i = 0; i < count; i++) {
                 detectors.push({
-                    center: i * step,
+                    center: (i + phase) * step,
                     width,
                     bit: Math.floor(Math.random() * this.codeLength),
                 });

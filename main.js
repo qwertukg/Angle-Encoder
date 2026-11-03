@@ -381,7 +381,8 @@ window.addEventListener("pointermove", (event) => {
     requestFrame();
 });
 
-window.addEventListener("resize", requestFrame);
+// The dial is sized by its container, which also changes with the history.
+new ResizeObserver(requestFrame).observe(canvas);
 
 layersList.addEventListener("pointerover", (event) => {
     const item = event.target.closest("li");

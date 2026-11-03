@@ -14,40 +14,72 @@
             --glow: 0 0 6px rgba(0, 255, 65, 0.7);
         }
 
+        /* The page fills exactly one screen: the dial shrinks to whatever
+           height is left after the code history and the footer. */
         body {
             font-family: Consolas, ui-monospace, monospace;
-            margin: 24px;
+            margin: 0;
+            padding: 16px 24px;
+            box-sizing: border-box;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
             color: var(--bright);
             background: var(--background);
         }
 
         .layout {
+            flex: 1;
+            min-height: 0;
             display: grid;
             grid-template-columns: repeat(12, minmax(0, 1fr));
+            grid-template-rows: minmax(0, 1fr);
             gap: 24px;
         }
 
         .sidebar {
             grid-column: span 2;
+            min-height: 0;
+            overflow-y: auto;
         }
 
         .main {
             grid-column: span 10;
+            min-height: 0;
             display: grid;
-            grid-template-rows: auto auto;
-            gap: 16px;
-            align-content: start;
+            grid-template-rows: minmax(0, 1fr) auto;
+            gap: 12px;
+        }
+
+        .dial-box {
+            min-height: 0;
+            container-type: size;
+            display: flex;
+            justify-content: center;
+            align-items: center;
         }
 
         .layers-panel {
-            margin-top: 24px;
+            margin-top: 16px;
             font-size: 12px;
         }
 
         @media (max-width: 800px) {
+            body {
+                height: auto;
+            }
+
+            .layout {
+                grid-template-rows: none;
+            }
+
             .sidebar,
             .main {
                 grid-column: 1 / -1;
+            }
+
+            .dial-box {
+                height: min(100vw - 48px, 80vh);
             }
         }
 
@@ -56,7 +88,7 @@
             display: flex;
             justify-content: space-between;
             gap: 8px;
-            padding: 2px 6px;
+            padding: 1px 6px;
         }
 
         .layers-header {
@@ -85,7 +117,7 @@
         form {
             display: flex;
             flex-direction: column;
-            gap: 12px;
+            gap: 8px;
         }
 
         label {
@@ -129,17 +161,33 @@
         }
 
         #recommendations {
-            margin: 16px 0 0;
+            margin: 12px 0 0;
             font-size: 14px;
             line-height: 1.5;
             text-shadow: var(--glow);
         }
 
+        footer {
+            flex: none;
+            margin-top: 12px;
+            padding-top: 8px;
+            border-top: 1px solid var(--dark);
+            font-size: 13px;
+            text-align: center;
+        }
+
+        a {
+            color: var(--bright);
+        }
+
+        a:hover {
+            text-shadow: var(--glow);
+        }
+
         #dial {
             display: block;
-            width: min(100%, 820px, 80vh);
-            aspect-ratio: 1;
-            margin: 0 auto;
+            width: min(100cqw, 100cqh);
+            height: min(100cqw, 100cqh);
             touch-action: none;
         }
 
@@ -150,12 +198,15 @@
             padding: 0;
             margin: 0;
             font-size: 12px;
+            /* Room for all five rows, so the dial does not jump as they fill. */
+            min-height: calc(5 * 24px);
         }
 
         #history li {
             display: flex;
             gap: 12px;
             padding: 4px 0;
+            line-height: 16px;
             color: var(--mid);
             opacity: 0.6;
         }
@@ -237,11 +288,17 @@
 </aside>
 
 <main class="main">
-    <canvas id="dial"></canvas>
+    <div class="dial-box">
+        <canvas id="dial"></canvas>
+    </div>
 
     <ol id="history"></ol>
 </main>
 </div>
+
+<footer>
+    <a href="https://arxiv.org/pdf/2508.00869" target="_blank" rel="noopener">Статья на arXiv: 2508.00869</a>
+</footer>
 
     <script src="encoder.js"></script>
     <script src="main.js"></script>
