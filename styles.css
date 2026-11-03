@@ -205,7 +205,11 @@ button:hover {
     margin: 12px 0 0;
     font-size: 14px;
     line-height: 1.5;
-    text-shadow: var(--glow);
+    color: var(--mid);
+}
+
+.hint-value {
+    color: var(--bright);
 }
 
 footer {
